@@ -1,5 +1,7 @@
 # CSC-820
 
-CSC-820 repo.
+This repository was created to demonstrate GitHub repository setup,
+VS Code configuration, and basic Git operations including commit,
+push, pull, and branching.
 
 
