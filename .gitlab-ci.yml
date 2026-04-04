@@ -1,15 +1,17 @@
+variables:
+  GIT_SSL_NO_VERIFY: "true"
+  CI_CLONE_URL: "http://gitlab-webservice-default.gitlab.svc.cluster.local:8080"
+
 stages:
   - test
   - build
   - deploy
 
-variables:
-  IMAGE_NAME: $CI_REGISTRY_IMAGE
-  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
-
 test:
   stage: test
   image: node:20-alpine
+  variables:
+    GIT_SSL_NO_VERIFY: "true"
   script:
     - npm ci
     - echo "Tests passed"
@@ -21,6 +23,7 @@ build:
     - docker:24-dind
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
+    GIT_SSL_NO_VERIFY: "true"
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
@@ -34,6 +37,8 @@ build:
 deploy:
   stage: deploy
   image: bitnami/kubectl:latest
+  variables:
+    GIT_SSL_NO_VERIFY: "true"
   before_script:
     - kubectl config set-cluster hl1 --server=$KUBE_URL --insecure-skip-tls-verify=true
     - kubectl config set-credentials gitlab --token=$KUBE_TOKEN
