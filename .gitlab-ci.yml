@@ -33,13 +33,15 @@ build:
 
 deploy:
   stage: deploy
-  image: bitnami/kubectl:latest
+  image: alpine/git
   script:
-    - kubectl config set-cluster hl1 --server=$KUBE_URL --insecure-skip-tls-verify=true
-    - kubectl config set-credentials gitlab --token=$KUBE_TOKEN
-    - kubectl config set-context hl1 --cluster=hl1 --user=gitlab
-    - kubectl config use-context hl1
-    - kubectl set image deployment/order-api order-api=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -n api
-    - kubectl rollout status deployment/order-api -n api
+    - git clone https://root:$GITLAB_TOKEN@gitlab.hl1/root/order-api-config.git
+    - cd order-api-config
+    - sed -i "s|registry.hl1/root/order-api:.*|registry.hl1/root/order-api:$CI_COMMIT_SHORT_SHA|g" k8s/deployment.yaml
+    - git config user.email "ci@gitlab.hl1"
+    - git config user.name "GitLab CI"
+    - git add k8s/deployment.yaml
+    - git commit -m "Update image to $CI_COMMIT_SHORT_SHA"
+    - git push
   only:
     - main
