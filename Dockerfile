@@ -7,6 +7,8 @@ RUN npm ci --only=production
 
 COPY . .
 
+RUN mkdir -p /data && chown -R node:node /data
+
 EXPOSE 3000
 
 USER node
