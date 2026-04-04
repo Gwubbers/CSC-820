@@ -20,7 +20,11 @@ build:
   image: docker:24
   services:
     - name: docker:24-dind
-      command: ["--insecure-registry=registry.hl1"]
+      command: ["--insecure-registry=registry.hl1", "--tls=false"]
+  before_script:
+    - mkdir -p /etc/docker/certs.d/registry.hl1
+    - echo '{"insecure-registries":["registry.hl1"]}' > /etc/docker/daemon.json
+    - until docker info; do sleep 1; done
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA .
