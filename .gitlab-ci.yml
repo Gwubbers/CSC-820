@@ -1,6 +1,5 @@
 variables:
   GIT_SSL_NO_VERIFY: "true"
-  CI_CLONE_URL: "http://gitlab-webservice-default.gitlab.svc.cluster.local:8080"
 
 stages:
   - test
@@ -10,8 +9,6 @@ stages:
 test:
   stage: test
   image: node:20-alpine
-  variables:
-    GIT_SSL_NO_VERIFY: "true"
   script:
     - npm ci
     - echo "Tests passed"
@@ -20,32 +17,29 @@ build:
   stage: build
   image: docker:24
   services:
-    - docker:24-dind
+    - name: docker:24-dind
+      command: ["--insecure-registry=registry.hl1"]
   variables:
-    DOCKER_TLS_CERTDIR: "/certs"
-    GIT_SSL_NO_VERIFY: "true"
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: tcp://docker:2375
   script:
-    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
-    - docker build -t $IMAGE_NAME:latest .
-    - docker push $IMAGE_NAME:$IMAGE_TAG
-    - docker push $IMAGE_NAME:latest
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA .
+    - docker build -t $CI_REGISTRY_IMAGE:latest .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest
   only:
     - main
 
 deploy:
   stage: deploy
   image: bitnami/kubectl:latest
-  variables:
-    GIT_SSL_NO_VERIFY: "true"
-  before_script:
+  script:
     - kubectl config set-cluster hl1 --server=$KUBE_URL --insecure-skip-tls-verify=true
     - kubectl config set-credentials gitlab --token=$KUBE_TOKEN
     - kubectl config set-context hl1 --cluster=hl1 --user=gitlab
     - kubectl config use-context hl1
-  script:
-    - kubectl set image deployment/order-api order-api=$IMAGE_NAME:$IMAGE_TAG
+    - kubectl set image deployment/order-api order-api=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
     - kubectl rollout status deployment/order-api
   only:
     - main
