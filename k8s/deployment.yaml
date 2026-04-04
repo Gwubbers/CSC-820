@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: order-api-db
+  namespace: api
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-api
+  namespace: api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: order-api
+  template:
+    metadata:
+      labels:
+        app: order-api
+    spec:
+      initContainers:
+        - name: fix-permissions
+          image: busybox
+          command: ["sh", "-c", "chmod 777 /data"]
+          volumeMounts:
+            - name: db-storage
+              mountPath: /data
+      imagePullSecrets:
+        - name: registry-auth
+      containers:
+        - name: order-api
+          image: registry.hl1/root/order-api:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DB_PATH
+              value: /data/orders.db
+          volumeMounts:
+            - name: db-storage
+              mountPath: /data
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 500m
+      volumes:
+        - name: db-storage
+          persistentVolumeClaim:
+            claimName: order-api-db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-api
+  namespace: api
+spec:
+  selector:
+    app: order-api
+  ports:
+    - port: 80
+      targetPort: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: order-api
+  namespace: api
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  tls:
+    - hosts:
+        - order-api.hl1
+      secretName: order-api-tls
+  rules:
+    - host: order-api.hl1
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: order-api
+                port:
+                  number: 80
