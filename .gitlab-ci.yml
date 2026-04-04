@@ -39,7 +39,7 @@ deploy:
     - kubectl config set-credentials gitlab --token=$KUBE_TOKEN
     - kubectl config set-context hl1 --cluster=hl1 --user=gitlab
     - kubectl config use-context hl1
-    - kubectl set image deployment/order-api order-api=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-    - kubectl rollout status deployment/order-api
+    - kubectl set image deployment/order-api order-api=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -n api
+    - kubectl rollout status deployment/order-api -n api
   only:
     - main
