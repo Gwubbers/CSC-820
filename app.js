@@ -32,7 +32,7 @@ function simulatePaymentGateway(orderId) {
 app.post('/orders', async (req, res) => {
   const { customer, product, quantity } = req.body;
 
-  if (!customer || !product || !quantity) {
+  if (!customer || !product || quantity === undefined || quantity === null) {
     return res.status(400).json({
       error: 'Missing required fields: customer, product, quantity'
     });
@@ -150,9 +150,11 @@ app.use((req, res) => {
 
 //Start Server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Order Management API running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Order Management API running on http://localhost:${PORT}`);
+  });
+}
 
 module.exports = app;
 // pipeline test Sat, Apr  4, 2026  1:13:58 AM

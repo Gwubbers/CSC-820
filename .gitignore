@@ -2,3 +2,5 @@
 orders.db
 *.zip
 .env
+converage/
+node_modules/
