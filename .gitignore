@@ -1,6 +1,7 @@
 ﻿node_modules/
 orders.db
 *.zip
-.env
-converage/
+coverage/
 node_modules/
+Project/
+.env
