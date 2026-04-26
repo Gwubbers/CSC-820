@@ -1,0 +1,105 @@
+---
+- name: Rollback Order Management API deployment
+  hosts: all
+  become: true
+
+  vars:
+    app_name: order-api
+    app_user: nodeapp
+    app_dir: /opt/{{ app_name }}
+    app_port: 3000
+    db_name: ordersdb
+    db_user: orderuser
+
+  tasks:
+
+    # ─── Stop the application ─────────────────────────────────────────────────
+    - name: Stop and delete PM2 process
+      become_user: "{{ app_user }}"
+      shell: pm2 delete {{ app_name }} 2>/dev/null || true
+      environment:
+        PATH: "/usr/bin:/usr/local/bin:{{ ansible_env.PATH }}"
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Kill PM2 daemon and any leftover node processes for app user
+      shell: |
+        pm2 kill 2>/dev/null || true
+        pkill -9 -u {{ app_user }} 2>/dev/null || true
+        fuser -k {{ app_port }}/tcp 2>/dev/null || true
+        sleep 2
+      changed_when: false
+      ignore_errors: yes
+
+    # ─── Remove application files ─────────────────────────────────────────────
+    - name: Remove application directory
+      file:
+        path: "{{ app_dir }}"
+        state: absent
+
+    - name: Remove application user
+      user:
+        name: "{{ app_user }}"
+        state: absent
+        remove: yes
+        force: yes
+      ignore_errors: yes
+
+    # ─── Drop database and user ───────────────────────────────────────────────
+    - name: Drop application database
+      become_user: postgres
+      community.postgresql.postgresql_db:
+        name: "{{ db_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Drop database user
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: "{{ db_user }}"
+        state: absent
+      ignore_errors: yes
+
+    # ─── Stop and uninstall PostgreSQL ────────────────────────────────────────
+    - name: Stop PostgreSQL service
+      service:
+        name: postgresql
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: Uninstall PostgreSQL packages
+      apt:
+        name:
+          - postgresql
+          - postgresql-contrib
+        state: absent
+        purge: yes
+
+    # ─── Uninstall Node.js and PM2 ────────────────────────────────────────────
+    - name: Remove PM2 global package
+      community.general.npm:
+        name: pm2
+        global: yes
+        state: absent
+      ignore_errors: yes
+
+    - name: Uninstall Node.js
+      apt:
+        name: nodejs
+        state: absent
+        purge: yes
+
+    - name: Remove NodeSource repo
+      file:
+        path: /etc/apt/sources.list.d/nodesource.list
+        state: absent
+
+    - name: Autoremove leftover packages
+      apt:
+        autoremove: yes
+        purge: yes
+
+    - name: Print rollback summary
+      debug:
+        msg: "Rollback complete"
