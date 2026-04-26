@@ -13,7 +13,7 @@
 
   tasks:
 
-    # ─── Stop the application ─────────────────────────────────────────────────
+    # Stop the application
     - name: Stop and delete PM2 process
       become_user: "{{ app_user }}"
       shell: pm2 delete {{ app_name }} 2>/dev/null || true
@@ -31,7 +31,7 @@
       changed_when: false
       ignore_errors: yes
 
-    # ─── Remove application files ─────────────────────────────────────────────
+    # Remove application files
     - name: Remove application directory
       file:
         path: "{{ app_dir }}"
@@ -45,7 +45,7 @@
         force: yes
       ignore_errors: yes
 
-    # ─── Drop database and user ───────────────────────────────────────────────
+    # Drop database and user 
     - name: Drop application database
       become_user: postgres
       community.postgresql.postgresql_db:
@@ -60,7 +60,7 @@
         state: absent
       ignore_errors: yes
 
-    # ─── Stop and uninstall PostgreSQL ────────────────────────────────────────
+    # Stop and uninstall PostgreSQL 
     - name: Stop PostgreSQL service
       service:
         name: postgresql
@@ -76,7 +76,7 @@
         state: absent
         purge: yes
 
-    # ─── Uninstall Node.js and PM2 ────────────────────────────────────────────
+    # Uninstall Node.js and PM2 
     - name: Remove PM2 global package
       community.general.npm:
         name: pm2

@@ -18,7 +18,7 @@
 
   tasks:
 
-    # ─── System prep ──────────────────────────────────────────────────────────
+    # System prep 
     - name: Update apt cache
       apt:
         update_cache: yes
@@ -37,7 +37,7 @@
           - psmisc
         state: present
 
-    # ─── Node.js (NodeSource repo) ────────────────────────────────────────────
+    # Node.js (NodeSource repo) 
     - name: Add NodeSource GPG key
       apt_key:
         url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
@@ -55,7 +55,7 @@
         state: present
         update_cache: yes
 
-    # ─── PostgreSQL ───────────────────────────────────────────────────────────
+    # PostgreSQL 
     - name: Install PostgreSQL
       apt:
         name:
@@ -91,7 +91,7 @@
         privs: ALL
         state: present
 
-    # ─── Application user ─────────────────────────────────────────────────────
+    # Application user 
     - name: Create dedicated app user
       user:
         name: "{{ app_user }}"
@@ -100,7 +100,7 @@
         home: "{{ app_dir }}"
         create_home: no
 
-    # ─── Kill stale processes from previous runs ─────────────────────────────
+    # Kill stale processes from previous runs
     - name: Kill any stale processes bound to the app port
       shell: |
         fuser -k {{ app_port }}/tcp 2>/dev/null || true
@@ -108,7 +108,7 @@
       changed_when: false
       ignore_errors: yes
 
-    # ─── Clone app code ───────────────────────────────────────────────────────
+    # Clone app code 
     - name: Clone or update application repository
       shell: |
         git config --global --add safe.directory {{ app_dir }}
@@ -147,14 +147,14 @@
           DATABASE_URL=postgres://{{ db_user }}:{{ db_password }}@{{ db_host }}:5432/{{ db_name }}
           NODE_ENV=production
 
-    # ─── Install npm dependencies ─────────────────────────────────────────────
+    # Install npm dependencies
     - name: Install npm dependencies
       become_user: "{{ app_user }}"
       community.general.npm:
         path: "{{ app_dir }}"
         production: yes
 
-    # ─── PM2 ──────────────────────────────────────────────────────────────────
+    # PM2 
     - name: Install PM2 globally
       community.general.npm:
         name: pm2
@@ -182,7 +182,7 @@
       environment:
         PATH: "/usr/bin:/usr/local/bin:{{ ansible_env.PATH }}"
 
-    # ─── Verification ─────────────────────────────────────────────────────────
+    # Verification 
     - name: Wait for application to respond
       uri:
         url: "http://localhost:{{ app_port }}/orders"
